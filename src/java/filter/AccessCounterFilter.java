@@ -22,7 +22,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- *
+ * AccessCounterFilter là một Filter dùng để đếm số lần truy cập vào mỗi URL.
+ * Filter này áp dụng cho tất cả các URL (/*) và sử dụng ConcurrentHashMap
+ * để lưu trữ số lần truy cập một cách thread-safe.
+ * Số lượt truy cập được lưu vào request attribute "visitCount".
+ * 
  * @author hiepn
  */
 @WebFilter(filterName="AccessCounterFilter", urlPatterns={"/*"})
@@ -30,40 +34,62 @@ public class AccessCounterFilter implements Filter {
 
     private static final boolean debug = true;
 
-    // The filter configuration object we are associated with.  If
-    // this value is null, this filter instance is not currently
-    // configured. 
+    /**
+     * Đối tượng FilterConfig được sử dụng để cấu hình filter
+     */
     private FilterConfig filterConfig = null;
 
     public AccessCounterFilter() {
     } 
 
+    /**
+     * Map lưu trữ số lần truy cập cho mỗi URL
+     * Sử dụng ConcurrentHashMap và AtomicInteger để đảm bảo thread-safe
+     */
     private static final Map<String, AtomicInteger> counter = new ConcurrentHashMap<>();
+
+    /**
+     * Phương thức chính của filter, được gọi cho mỗi request
+     * Tăng số lượt truy cập cho URL hiện tại và lưu vào request attribute
+     * 
+     * @param request The servlet request
+     * @param response The servlet response
+     * @param chain The filter chain
+     * @throws IOException nếu có lỗi I/O
+     * @throws ServletException nếu có lỗi servlet
+     */
     public void doFilter(ServletRequest request, ServletResponse response,
                          FilterChain chain)
 	throws IOException, ServletException {
 
+	// Ép kiểu request về HttpServletRequest để lấy URI
 	HttpServletRequest httpRequest = (HttpServletRequest) request;
 
-        // Tăng số lượt truy cập cho trang hiện tại
+        // Lấy đường dẫn URL của request hiện tại
         String path = httpRequest.getRequestURI();
+        
+        // Tăng số lượt truy cập cho URL hiện tại
+        // Sử dụng computeIfAbsent để tạo mới AtomicInteger nếu chưa có
+        // và incrementAndGet để tăng giá trị một cách thread-safe
         counter.computeIfAbsent(path, k -> new AtomicInteger(0)).incrementAndGet();
 
+        // Lưu số lượt truy cập vào request attribute để JSP có thể truy cập
         request.setAttribute("visitCount", counter.get(path));
 
+        // Cho phép request tiếp tục trong chuỗi filter
         chain.doFilter(request, response);
     }
     
     /**
-     * Return the filter configuration object for this filter.
+     * Lấy đối tượng FilterConfig của filter này
+     * @return FilterConfig object
      */
     public FilterConfig getFilterConfig() {
 	return (this.filterConfig);
     }
 
     /**
-     * Set the filter configuration object for this filter.
-     *
+     * Thiết lập đối tượng FilterConfig cho filter
      * @param filterConfig The filter configuration object
      */
     public void setFilterConfig(FilterConfig filterConfig) {
@@ -71,16 +97,20 @@ public class AccessCounterFilter implements Filter {
     }
 
     /**
-     * Destroy method for this filter 
+     * Phương thức được gọi khi filter bị hủy
      */
     public void destroy() { 
     }
 
     /**
-     * Init method for this filter 
+     * Phương thức khởi tạo filter
+     * @param filterConfig The filter configuration object
      */
     public void init(FilterConfig filterConfig) { 
+	// Lưu trữ FilterConfig để sử dụng sau này
 	this.filterConfig = filterConfig;
+	
+	// Nếu debug mode được bật, ghi log khởi tạo
 	if (filterConfig != null) {
 	    if (debug) { 
 		log("AccessCounterFilter:Initializing filter");
@@ -89,7 +119,8 @@ public class AccessCounterFilter implements Filter {
     }
 
     /**
-     * Return a String representation of this object.
+     * Trả về chuỗi biểu diễn của filter
+     * @return chuỗi biểu diễn của filter
      */
     @Override
     public String toString() {

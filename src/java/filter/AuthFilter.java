@@ -21,7 +21,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 /**
- *
+ * AuthFilter là một Filter dùng để kiểm tra xác thực người dùng.
+ * Filter này sẽ chặn các request đến các URL cần xác thực (/delete, /edit, /add)
+ * và kiểm tra xem người dùng đã đăng nhập hay chưa.
+ * Nếu chưa đăng nhập, người dùng sẽ được chuyển hướng đến trang login.
+ * 
  * @author hiepn
  */
 @WebFilter(filterName="AuthFilter", urlPatterns={"/delete", "/edit", "/add"})
@@ -29,49 +33,55 @@ public class AuthFilter implements Filter {
 
     private static final boolean debug = true;
 
-    // The filter configuration object we are associated with.  If
-    // this value is null, this filter instance is not currently
-    // configured. 
+    /**
+     * Đối tượng FilterConfig được sử dụng để cấu hình filter
+     */
     private FilterConfig filterConfig = null;
 
     public AuthFilter() {
     } 
 
     /**
-     *
-     * @param request The servlet request we are processing
-     * @param response The servlet response we are creating
-     * @param chain The filter chain we are processing
-     *
-     * @exception IOException if an input/output error occurs
-     * @exception ServletException if a servlet error occurs
+     * Phương thức chính của filter, được gọi cho mỗi request
+     * Kiểm tra session và attribute "username" để xác định trạng thái đăng nhập
+     * 
+     * @param request The servlet request
+     * @param response The servlet response
+     * @param chain The filter chain
+     * @throws IOException nếu có lỗi I/O
+     * @throws ServletException nếu có lỗi servlet
      */
     public void doFilter(ServletRequest request, ServletResponse response,
                          FilterChain chain)
 	throws IOException, ServletException {
 
+	// Ép kiểu request và response về dạng HTTP
 	HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
         
+        // Lấy session hiện tại (không tạo mới nếu chưa có)
         HttpSession session = req.getSession(false);
         
+        // Kiểm tra session và attribute username
         if(session == null || session.getAttribute("username") == null) {
+            // Nếu chưa đăng nhập, chuyển hướng về trang login
             res.sendRedirect("login");
         } else {
+            // Nếu đã đăng nhập, cho phép request tiếp tục
             chain.doFilter(request, response);
         }
     }
     
     /**
-     * Return the filter configuration object for this filter.
+     * Lấy đối tượng FilterConfig của filter này
+     * @return FilterConfig object
      */
     public FilterConfig getFilterConfig() {
 	return (this.filterConfig);
     }
 
     /**
-     * Set the filter configuration object for this filter.
-     *
+     * Thiết lập đối tượng FilterConfig cho filter
      * @param filterConfig The filter configuration object
      */
     public void setFilterConfig(FilterConfig filterConfig) {
@@ -79,16 +89,20 @@ public class AuthFilter implements Filter {
     }
 
     /**
-     * Destroy method for this filter 
+     * Phương thức được gọi khi filter bị hủy
      */
     public void destroy() { 
     }
 
     /**
-     * Init method for this filter 
+     * Phương thức khởi tạo filter
+     * @param filterConfig The filter configuration object
      */
     public void init(FilterConfig filterConfig) { 
+	// Lưu trữ FilterConfig để sử dụng sau này
 	this.filterConfig = filterConfig;
+	
+	// Nếu debug mode được bật, ghi log khởi tạo
 	if (filterConfig != null) {
 	    if (debug) { 
 		log("AuthFilter:Initializing filter");

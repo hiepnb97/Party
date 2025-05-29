@@ -21,27 +21,42 @@ import java.util.logging.Logger;
 import model.Person;
 
 /**
- *
+ * ListServlet xử lý việc hiển thị danh sách tất cả các Person.
+ * Servlet này chỉ xử lý GET request, lấy dữ liệu từ database
+ * thông qua PersonDAO và hiển thị lên trang list.jsp.
+ * 
  * @author hiepn
  */
 @WebServlet(name="ListServlet", urlPatterns={"/list"})
 public class ListServlet extends HttpServlet {
    
+    /**
+     * Xử lý GET request - lấy và hiển thị danh sách Person
+     * 
+     * @param request servlet request
+     * @param response servlet response
+     * @throws ServletException nếu có lỗi servlet
+     * @throws IOException nếu có lỗi I/O
+     */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
     throws ServletException, IOException {
         
-        // Lấy data
+        // Khởi tạo đối tượng PersonDAO để thao tác với database
         PersonDAO personDAO = new PersonDAO();
         ArrayList<Person> persons;
         try {
+            // Lấy danh sách tất cả Person từ database
             persons = personDAO.getAllPersons();
+            
+            // Lưu danh sách vào request attribute để JSP có thể truy cập
             request.setAttribute("persons", persons);
         
-            // Chuyển tiếp request đến trang list.jsp
+            // Tạo RequestDispatcher và chuyển tiếp đến trang list.jsp
             RequestDispatcher dispatcher = request.getRequestDispatcher("list.jsp");
             dispatcher.forward(request, response);
         } catch (SQLException ex) {
+            // Log lỗi nếu có vấn đề khi truy vấn database
             Logger.getLogger(ListServlet.class.getName()).log(Level.SEVERE, null, ex);
         }
     } 
